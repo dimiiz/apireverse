@@ -8,7 +8,7 @@ let tableData = '';
 let server = null; // Variável para armazenar o servidor
 
 function fetchData(page) {
-  const url = page === 0 ? 'http://ntoreverse.online/?highscores/experience/0' : `http://ntoreverse.online/?highscores/experience/${page}`;
+  const url = page === 0 ? 'https://ntowar.online/?subtopic=highscores&list=experience/0' : `https://ntowar.online/?subtopic=highscores&list=experience/${page}`;
 
   axios.get(url)
     .then(response => {
