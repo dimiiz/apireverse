@@ -1,78 +1,33 @@
-const http = require('http');
-const axios = require('axios');
+const express = require('express');
 const cheerio = require('cheerio');
+const axios = require('axios');
 
-const INTERVALO_ATUALIZACAO = 10000; // 10s
-const PAGINAS = 5;
-let tableData = '';
-let server = null; // Variável para armazenar o servidor
+const app = express();
+const port = 3000;
 
-function fetchData(page) {
-  const url = page === 0 ? 'https://ntowar.online/?subtopic=highscores&list=experience/0' : `https://ntowar.online/?subtopic=highscores&list=experience/${page}`;
-
-  axios.get(url)
+app.get('/', (req, res) => {
+  axios.get('https://dboabridged.online/?highscores')
     .then(response => {
-      const html = response.data;
-      const $ = cheerio.load(html);
+      const $ = cheerio.load(response.data);
+      const users = [];
 
-      const tableRows = $('table.content-table tbody tr');
-      const formattedCells = [];
-
-      tableRows.each((_, row) => {
-        const columns = $(row).find('td');
-        const name = $(columns[2]).text().trim();
-        const nameArray = name.split('\n');
-        const level = $(columns[3]).text().trim();
-
-        formattedCells.push(`${nameArray[0]}:${level}:${nameArray[1]}`);
+      $('#box3 > div > center:nth-child(4) > table > tbody > tr > td:nth-child(2) > table:nth-child(4) > tbody tr').each((index, element) => {
+        if (index < 3) {
+          const columns = $(element).find('td');
+          const user = $(columns[2]).text().trim();
+          const level = $(columns[3]).text().trim();
+          users.push(`${user}:${level}`);
+        }
       });
 
-      const result = formattedCells.join('\n');
-      tableData += result;
-
-      if (page === PAGINAS) {
-        // Última página, retornar os dados
-        if (!server) {
-          // Criar o servidor apenas se não existir
-          server = http.createServer((req, res) => {
-            if (req.url === '/') {
-              res.statusCode = 200;
-              res.setHeader('Content-Type', 'text/plain');
-              res.end(tableData);
-            }
-          });
-
-          const port = 3001;
-          server.listen(port, () => {
-            console.log(`Servidor está rodando em http://localhost:${port}`);
-          });
-        }
-      }
+      res.send(users.join('\n'));
     })
     .catch(error => {
-      console.log('Ocorreu um erro:', error);
+      console.log(error);
+      res.send('Ocorreu um erro ao acessar o site.');
     });
-}
+});
 
-// Atualizar periodicamente os dados
-function updateData() {
-  // Encerrar o servidor se estiver em execução
-  if (server) {
-    server.close();
-    server = null;
-  }
-
-  tableData = ''; // Limpar os dados antigos antes de atualizar
-  
-  // Tratar a página 0 separadamente
-  fetchData(0);
-
-  for (let page = 1; page <= PAGINAS; page++) {
-    fetchData(page);
-  }
-}
-
-updateData(); // Inicialmente buscar os dados
-
-// Atualizar periodicamente os dados
-setInterval(updateData, INTERVALO_ATUALIZACAO);
+app.listen(port, () => {
+  console.log(`Servidor rodando em http://localhost:${port}`);
+});
